@@ -1,0 +1,22 @@
+# Compiled binaries
+/herald
+/bin/
+*.exe
+
+# Test / coverage output
+*.out
+coverage.*
+
+# Local per-project config — may contain a client's business data
+.herald/
+*.local.json
+
+# Secrets — API keys come from the environment, never the repo
+.env
+.env.*
+*.key
+*-key.json
+
+# Editor / OS
+.DS_Store
+*.swp

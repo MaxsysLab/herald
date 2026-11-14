@@ -18,14 +18,15 @@ chatbot.
 
 ## Status
 
-`v0.1.0-dev`. The full answer pipeline and the HTTP server (chat API, embeddable
-widget, management console) are built and tested. The core is lean Go with zero
-external dependencies and needs no GPU.
+`v0.1.0-dev`, an early release. The full answer pipeline and the HTTP server (chat API,
+embeddable widget, management console) are built and tested. The core is lean Go with
+zero external dependencies and needs no GPU.
 
-This is an early release. **The management console has no sign-in yet**, so anyone
-who can reach it can change what the officer says. Run it on `localhost` or behind a
-protected proxy until that is built. Read [docs/SECURITY-MODEL.md](docs/SECURITY-MODEL.md)
-and [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) before you put it on the internet.
+The quick start below runs it on your own machine, which is the best place to get to
+know it. One piece is still to come before Herald belongs on the open internet: a
+sign-in for the management console. Until it is built, keep the console on `localhost`
+or behind a protected proxy. [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) shows how, and
+[docs/SECURITY-MODEL.md](docs/SECURITY-MODEL.md) explains what Herald protects today.
 
 ## Quick start
 

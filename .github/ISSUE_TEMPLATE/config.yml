@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/MaxsysLab/herald/security/advisories/new
+    about: Do NOT open a public issue. Report privately here, or see SECURITY.md.
+  - name: Propose a name for the project
+    url: https://github.com/MaxsysLab/herald/blob/main/docs/OPEN-QUESTIONS.md
+    about: Herald is a working name. Read what a good name has to do, then open an issue.

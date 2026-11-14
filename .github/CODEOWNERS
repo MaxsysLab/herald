@@ -1,0 +1,11 @@
+# Code owners: who is asked to review a change. See
+# https://docs.github.com/articles/about-code-owners and MAINTAINERS.md.
+
+# Default owner for everything, until more maintainers and reviewers are appointed.
+*                       @logicdart
+
+# Paths where a maintainer's review matters most.
+/.github/workflows/     @logicdart
+/SECURITY.md            @logicdart
+/LICENSE                @logicdart
+/NOTICE                 @logicdart

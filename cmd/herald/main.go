@@ -10,7 +10,9 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"os"
+	"strings"
 
 	"github.com/MaxsysLab/herald/internal/core"
 	"github.com/MaxsysLab/herald/internal/embed"
@@ -54,17 +56,24 @@ func runServe(args []string) {
 	if err != nil {
 		log.Fatalf("herald: %v", err)
 	}
-	log.Printf("herald serving on %s  (console: http://localhost%s/admin)", *addr, normalizeAddr(*addr))
+	log.Printf("herald serving on %s  (console: %s)", *addr, consoleURL(*addr))
 	if err := srv.Run(*addr); err != nil {
 		log.Fatalf("herald: %v", err)
 	}
 }
 
-func normalizeAddr(addr string) string {
-	if len(addr) > 0 && addr[0] == ':' {
-		return addr
+// consoleURL returns the management console link for a listen address. An address
+// without a host (":8080") is shown as localhost; otherwise the given host is kept.
+func consoleURL(addr string) string {
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		// No host:port form (for example a bare "8080"): treat it as a port.
+		host, port = "", strings.TrimPrefix(addr, ":")
 	}
-	return ":" + addr
+	if host == "" {
+		host = "localhost"
+	}
+	return "http://" + net.JoinHostPort(host, port) + "/admin"
 }
 
 func runDemo() {

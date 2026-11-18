@@ -14,7 +14,9 @@ package officer
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
+	"unicode"
 
 	"github.com/MaxsysLab/herald/internal/core"
 	"github.com/MaxsysLab/herald/internal/guard"
@@ -124,7 +126,7 @@ func (o *Officer) Answer(ctx context.Context, q core.Query) (core.Reply, error) 
 func (o *Officer) structuredAnswer(query string) (core.Reply, bool) {
 	low := strings.ToLower(query)
 
-	if containsAny(low, "price", "cost", "how much", "charge", "fee", "rate") {
+	if containsAny(low, "price", "prices", "cost", "costs", "how much", "charge", "charges", "fee", "fees", "rate", "rates") {
 		if svc, ok := o.Profile.PriceOf(query); ok {
 			return grounded(
 				fmt.Sprintf("%s is %s.", svc.Name, svc.Price.String()),
@@ -135,7 +137,7 @@ func (o *Officer) structuredAnswer(query string) (core.Reply, bool) {
 		return o.escalate("price_not_listed", query), true
 	}
 
-	if containsAny(low, "hour", "open", "close", "when are you") && len(o.Profile.Hours) > 0 {
+	if containsAny(low, "hour", "hours", "open", "opens", "opened", "opening", "close", "closes", "closed", "when are you") && len(o.Profile.Hours) > 0 {
 		var b strings.Builder
 		for i, h := range o.Profile.Hours {
 			if i > 0 {
@@ -213,11 +215,26 @@ func citations(scored []knowledge.Scored) []core.Citation {
 	return out
 }
 
+// containsAny matches whole words or consecutive word phrases, ignoring case and
+// treating punctuation and whitespace as separators rather than parts of a phrase.
 func containsAny(s string, subs ...string) bool {
+	words := intentWords(s)
 	for _, sub := range subs {
-		if strings.Contains(s, sub) {
-			return true
+		phrase := intentWords(sub)
+		if len(phrase) == 0 {
+			continue
+		}
+		for i := 0; i+len(phrase) <= len(words); i++ {
+			if slices.Equal(words[i:i+len(phrase)], phrase) {
+				return true
+			}
 		}
 	}
 	return false
+}
+
+func intentWords(s string) []string {
+	return strings.FieldsFunc(strings.ToLower(s), func(r rune) bool {
+		return !unicode.IsLetter(r) && !unicode.IsNumber(r) && !unicode.IsMark(r) && r != '_'
+	})
 }

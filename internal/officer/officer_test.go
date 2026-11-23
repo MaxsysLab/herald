@@ -116,3 +116,99 @@ func TestInjectionRefused(t *testing.T) {
 		t.Fatalf("verdict = %s, want refuse", r.Verdict)
 	}
 }
+
+func TestStructuredIntentDoesNotMatchInsideWords(t *testing.T) {
+	for _, query := range []string{
+		"Do you have a closet for coats?",
+		"Can we celebrate a birthday there?",
+	} {
+		t.Run(query, func(t *testing.T) {
+			o := build(t)
+			o.LLM = nil
+			if err := o.Retriever.Index(context.Background(), []knowledge.Passage{
+				{ID: "question", Source: "kb:question", Text: query},
+			}); err != nil {
+				t.Fatal(err)
+			}
+			r := answer(t, o, query)
+			if r.Verdict != core.VerdictAnswer || len(r.Citations) != 1 || r.Citations[0].Source != "kb:question" {
+				t.Fatalf("expected knowledge-base answer, got %+v", r)
+			}
+			o.Retriever = nil
+			r = answer(t, o, query)
+			if r.Verdict != core.VerdictEscalate || r.Escalation == nil || r.Escalation.Reason != "ungrounded" {
+				t.Fatalf("expected ungrounded handoff without evidence, got %+v", r)
+			}
+		})
+	}
+}
+
+func TestStructuredIntentRouting(t *testing.T) {
+	for _, tc := range []struct {
+		query, source string
+	}{
+		{"What is the PRICE of a cappuccino?", "profile:pricing"},
+		{"Cappuccino prices?", "profile:pricing"},
+		{"What does a cappuccino cost?", "profile:pricing"},
+		{"Cappuccino costs?", "profile:pricing"},
+		{"HOW, MUCH is a cappuccino?", "profile:pricing"},
+		{"What do you charge for a cappuccino?", "profile:pricing"},
+		{"Cappuccino charges?", "profile:pricing"},
+		{"Cappuccino fee?", "profile:pricing"},
+		{"Cappuccino fees?", "profile:pricing"},
+		{"Cappuccino rate?", "profile:pricing"},
+		{"Cappuccino rates?", "profile:pricing"},
+		{"What hour do you close?", "profile:hours"},
+		{"HOURS?", "profile:hours"},
+		{"Are you OPEN?", "profile:hours"},
+		{"When are you opening?", "profile:hours"},
+		{"The cafe opens when?", "profile:hours"},
+		{"Have you opened?", "profile:hours"},
+		{"What time do you close?", "profile:hours"},
+		{"The cafe closes when?", "profile:hours"},
+		{"Are you closed?", "profile:hours"},
+		{"WHEN, ARE\tYOU available?", "profile:hours"},
+		{"What is your REFUND policy?", "profile:policy:refund"},
+		{"Do you offer refunds?", "profile:policy:refund"},
+		{"What about LATE CHECKOUT?", "profile:policy:late checkout"},
+	} {
+		t.Run(tc.query, func(t *testing.T) {
+			o := build(t)
+			o.Profile.Policies = append(o.Profile.Policies, knowledge.Policy{Topic: "late checkout", Text: "Late checkout is available."})
+			r := answer(t, o, tc.query)
+			if r.Verdict != core.VerdictAnswer || len(r.Citations) != 1 || r.Citations[0].Source != tc.source {
+				t.Fatalf("expected %s answer, got %+v", tc.source, r)
+			}
+		})
+	}
+}
+
+func TestContainsAnyWholeWords(t *testing.T) {
+	for _, tc := range []struct {
+		query, phrase string
+		want          bool
+	}{
+		{"closet", "close", false},
+		{"celebrate", "rate", false},
+		{"disclose", "close", false},
+		{"closet then CLOSE!", "close", true},
+		{"éclose", "close", false},
+		{"closeé", "close", false},
+		{"close2", "close", false},
+		{"close_time", "close", false},
+		{"close\u0301", "close", false},
+		{"(Close)?", "close", true},
+		{"HOW,\tMUCH?", "how much", true},
+		{"how very much", "how much", false},
+		{"somehow much", "how much", false},
+		{"anything", "", false},
+		{"anything", "?!", false},
+		{"", "close", false},
+	} {
+		t.Run(tc.query+"/"+tc.phrase, func(t *testing.T) {
+			if got := containsAny(tc.query, "nonmatching", tc.phrase); got != tc.want {
+				t.Fatalf("containsAny(%q, %q) = %v, want %v", tc.query, tc.phrase, got, tc.want)
+			}
+		})
+	}
+}
